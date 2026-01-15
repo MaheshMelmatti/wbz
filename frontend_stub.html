@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Signal Analyzer — Quick UI</title>
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --accent:#5eead4;
+      --muted:#94a3b8;
+      --glass: rgba(255,255,255,0.03);
+      --glass2: rgba(255,255,255,0.02);
+      --glass-border: rgba(255,255,255,0.06);
+      font-synthesis: none;
+    }
+    *{box-sizing:border-box;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
+    body{margin:0;background:linear-gradient(180deg,#071028 0%, #071522 60%);color:#e6f0ff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px}
+    .wrap{width:100%;max-width:1100px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+    .brand{display:flex;gap:14px;align-items:center}
+    .logo{
+      width:54px;height:54px;border-radius:12px;
+      background:linear-gradient(135deg,var(--accent),#60a5fa);box-shadow:0 6px 30px rgba(6,8,15,0.6);
+      display:grid;place-items:center;font-weight:700;color:#052025;font-size:20px;
+    }
+    h1{margin:0;font-size:20px;letter-spacing:-0.2px}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+    .controls{display:flex;gap:10px;align-items:center}
+    button.cta{
+      background:linear-gradient(90deg,#60a5fa,#5eead4);
+      color:#042028;border:0;padding:10px 16px;border-radius:10px;font-weight:600;
+      box-shadow:0 8px 30px rgba(96,165,250,0.12);cursor:pointer;backdrop-filter: blur(6px);
+    }
+    button.ghost{background:transparent;border:1px solid var(--glass-border);padding:8px 12px;border-radius:10px;color:var(--muted);cursor:pointer}
+    main.grid{display:grid;grid-template-columns:380px 1fr;gap:18px}
+    .panel{background:linear-gradient(180deg,var(--card),#071027);border-radius:14px;padding:16px;border:1px solid var(--glass-border);box-shadow:0 8px 40px rgba(2,6,23,0.6)}
+    .scan-status{font-size:13px;color:var(--muted);margin-bottom:10px}
+    .network-list{display:flex;flex-direction:column;gap:10px;max-height:520px;overflow:auto;padding-right:6px}
+    .net{
+      display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;background:linear-gradient(180deg,var(--glass),var(--glass2));
+      border:1px solid rgba(255,255,255,0.02);
+      transition:transform .18s ease,box-shadow .18s ease;
+    }
+    .net:hover{transform:translateY(-4px);box-shadow:0 10px 30px rgba(2,8,22,0.6)}
+    .net .icon{width:46px;height:46;border-radius:10px;background:linear-gradient(135deg,#0ea5a5,#60a5fa);display:grid;place-items:center;font-weight:700;color:#001319}
+    .meta{flex:1;display:flex;flex-direction:column}
+    .meta .title{font-weight:700;font-size:14px}
+    .meta .sub{font-size:12px;color:var(--muted)}
+    .stats{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+    .rssi{font-weight:700}
+    .small{font-size:12px;color:var(--muted)}
+    .chart-placeholder{height:220px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px}
+    footer{margin-top:14px;color:var(--muted);font-size:12px;text-align:center}
+    .download{display:flex;gap:8px;align-items:center}
+    .pill{background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:999px;font-size:12px;border:1px solid rgba(255,255,255,0.02)}
+    pre.jsonout{white-space:pre-wrap;background:transparent;border-radius:8px;padding:10px;color:#dbeafe;border:1px dashed rgba(255,255,255,0.03);max-height:220px;overflow:auto}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">SA</div>
+        <div>
+          <h1>Signal Analyzer</h1>
+          <p class="lead">Quick test UI — calls your local backend and displays scan results</p>
+        </div>
+      </div>
+      <div class="controls">
+        <button id="scanBtn" class="cta">🔍 Scan Wi-Fi</button>
+        <button id="scanBle" class="ghost">📶 Scan BLE</button>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="panel">
+        <div class="scan-status" id="status">Idle — press "Scan Wi-Fi" to start.</div>
+        <div style="display:flex;gap:10px;margin-bottom:12px">
+          <div class="pill" id="count">Networks: 0</div>
+          <div class="pill" id="best">Best: N/A</div>
+        </div>
+
+        <div class="network-list" id="list">
+          <!-- networks will populate here -->
+          <div style="color:var(--muted);font-size:13px">No scan yet</div>
+        </div>
+        <footer>Tip: open devtools → Network to inspect the API call.</footer>
+      </section>
+
+      <aside class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div>
+            <strong>Live Summary</strong>
+            <div style="font-size:12px;color:var(--muted)">A quick visual summary</div>
+          </div>
+          <div class="download">
+            <button id="downloadBtn" class="ghost">⬇️ Download</button>
+          </div>
+        </div>
+
+        <div class="chart-placeholder" id="chart">RSSI chart (placeholder)</div>
+
+        <h4 style="margin-top:12px">Raw JSON</h4>
+        <pre class="jsonout" id="raw">{ }</pre>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const scanBtn = document.getElementById('scanBtn');
+    const scanBle = document.getElementById('scanBle');
+    const status = document.getElementById('status');
+    const list = document.getElementById('list');
+    const countPill = document.getElementById('count');
+    const bestPill = document.getElementById('best');
+    const raw = document.getElementById('raw');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    const API_BASE = 'http://127.0.0.1:8000/api/scan';
+
+    function formatItem(it){
+      const name = it.Name || it.ssid || it.SSID || 'Hidden';
+      const bssid = it.BSSID || it.bssid || 'N/A';
+      const rssi = it['Signal (dBm)'] || it.rssi || 'N/A';
+      const pct = it['Signal (%)'] || it.signal_percent || 'N/A';
+      const sec = it['Security Type'] || it.security || 'N/A';
+      const dist = it.Distance || it.distance || 'N/A';
+      return {name,bssid,rssi,pct,sec,dist};
+    }
+
+    async function runWifi(){
+      status.textContent = 'Scanning Wi-Fi — contacting backend…';
+      list.innerHTML = '';
+      try{
+        const res = await fetch(API_BASE + '/wifi');
+        if(!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        raw.textContent = JSON.stringify(data,null,2);
+
+        if(!Array.isArray(data) || data.length === 0){
+          status.textContent = 'No networks found';
+          list.innerHTML = '<div style="color:var(--muted)">No results</div>';
+          countPill.textContent = 'Networks: 0';
+          bestPill.textContent = 'Best: N/A';
+          return;
+        }
+
+        // Build cards
+        countPill.textContent = 'Networks: ' + data.length;
+        // find best by dBm (try to parse)
+        let best = null;
+        data.forEach(d=>{
+          const parsed = formatItem(d);
+          const m = parsed.rssi.match(/-?\d+/);
+          const val = m ? parseInt(m[0],10) : -999;
+          if(!best || val > best.val) best = {val, parsed};
+        });
+        bestPill.textContent = 'Best: ' + (best ? best.parsed.name + ' ' + best.parsed.rssi : 'N/A');
+
+        list.innerHTML = '';
+        data.forEach(d=>{
+          const p = formatItem(d);
+          const el = document.createElement('div');
+          el.className = 'net';
+          el.innerHTML = `
+            <div class="icon">${p.name[0] || '?'}</div>
+            <div class="meta">
+              <div class="title">${p.name}</div>
+              <div class="sub">${p.bssid} · ${p.sec}</div>
+            </div>
+            <div class="stats">
+              <div class="rssi">${p.rssi}</div>
+              <div class="small">${p.dist}</div>
+            </div>
+          `;
+          list.appendChild(el);
+        });
+
+        status.textContent = 'Scan complete';
+      }catch(err){
+        status.textContent = 'Scan failed: '+err.message;
+        raw.textContent = String(err);
+        list.innerHTML = '<div style="color:#ffb4b4">Error contacting backend.</div>';
+      }
+    }
+
+    async function runBle(){
+      status.textContent = 'Scanning BLE — contacting backend…';
+      try{
+        const res = await fetch(API_BASE + '/ble');
+        if(!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        raw.textContent = JSON.stringify(data,null,2);
+        status.textContent = 'BLE scan complete';
+      }catch(err){
+        status.textContent = 'BLE scan failed: '+err.message;
+      }
+    }
+
+    scanBtn.addEventListener('click', runWifi);
+    scanBle.addEventListener('click', runBle);
+    downloadBtn.addEventListener('click', ()=>alert('Download will be implemented later (server-side PDF).'));
+  </script>
+</body>
+</html>
