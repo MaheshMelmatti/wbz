@@ -1,5 +1,5 @@
 // src/services/api.js
-const BASE = "http://127.0.0.1:8000/api";
+const BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
 
 /**
  * Build headers
@@ -68,7 +68,7 @@ export async function listScans(token) {
 
 export async function downloadScan(token, scanId, suggestedName) {
   const res = await fetch(
-    `http://127.0.0.1:8000/api/data/${scanId}/download`,
+    `${BASE}/${scanId}/download`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -98,7 +98,7 @@ export async function downloadScan(token, scanId, suggestedName) {
 // DELETE a saved scan
 export async function deleteScan(token, scanId) {
   const res = await fetch(
-    `http://127.0.0.1:8000/api/data/${scanId}`,
+    `${BASE}/${scanId}`,
     {
       method: "DELETE",
       headers: {
